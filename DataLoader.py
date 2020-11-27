@@ -1,28 +1,61 @@
+from __future__ import print_function, division
 import os
+import torch
+import pandas as pd
+from skimage import io, transform
+import  matplotlib.pyplot as plt
 import numpy as np
-import cv2
+import matplotlib.pyplot as plt
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
 
-class ImageFolder:
-    def __init__(self, folderPath):
-        self.path = folderPath
-        self.images = []
-
-    def loadImagesToList(folder):
-        images = []
-        fileNames = []
-        for filename in os.listdir(folder):
-            img = cv2.imread(os.path.join(folder, filename))
-            if img is not None:
-                fileNames.append(filename)
-                images.append(img)
-        return filename, images
+# Ignore warnings
+import warnings
+warnings.filterwarnings("ignore")
 
 
+class LeafDiseaseDataset(Dataset):
+    """Leaf Disease Dataset"""
 
+    def __init__(self, csv_file, root_dir, transform=None):
+        """
+        Args:
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.labels_file = pd.read_csv(csv_file)
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.labels_file)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_name = os.path.join(self.root_dir,
+                                self.labels_file.iloc[idx, 0])
+        image = io.imread(img_name)
+        label = self.labels_file.iloc[idx,1]
+        sample = {'image': image, 'label': label}
+
+        if self.transform:
+            sample = self.transform(sample)
+        return sample
+
+    def showImage(self, idx):
+        image = self[idx]['image']
+        plt.imshow(image)
+        plt.show()
 
 
 def main():
-
+    train_dataset = LeafDiseaseDataset(csv_file='Data/train.csv',
+                                        root_dir='Data/train_images')
+    print(len(train_dataset))
 
 if __name__ == "__main__":
     main()
