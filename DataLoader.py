@@ -74,8 +74,8 @@ def main():
     ROOT_PATH = 'Data/train_images'
     dataset = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
     train_dataset, test_dataset = train_val_dataset(dataset)
-    train_dataloader = DataLoader(train_dataset, batch_size=64)
-    test_dataloader = DataLoader(test_dataset, batch_size=64)
+    train_dataloader = DataLoader(train_dataset, batch_size=128)
+    test_dataloader = DataLoader(test_dataset, batch_size=128)
     for _ in train_dataloader:
         print(_)
 

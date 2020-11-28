@@ -61,6 +61,7 @@ class Model():
                 if (batch_idx) % 20 == 0:
                     print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                           .format(epoch, n_epochs, batch_idx, total_step, loss.item()))
+                #break
             train_acc.append(100 * correct / total)
             train_loss.append(running_loss / total_step)
             print(f'\ntrain-loss: {np.mean(train_loss):.4f}, train-acc: {(100 * correct / total):.4f}')
@@ -70,13 +71,14 @@ class Model():
             with torch.no_grad():
                 self.model.eval()
                 for data_t, target_t in (test_dataloader):
-                    data_t, target_t = data_t.to(self.device), target_t.to(self.device)
+                    data_t, target_t = data_t.to(self.device, dtype=torch.float), target_t.to(self.device, dtype=torch.long)
                     outputs_t = self.model(data_t)
                     loss_t = criterion(outputs_t, target_t)
                     batch_loss += loss_t.item()
                     _, pred_t = torch.max(outputs_t, dim=1)
                     correct_t += torch.sum(pred_t == target_t).item()
                     total_t += target_t.size(0)
+                    #break
                 val_acc.append(100 * correct_t / total_t)
                 val_loss.append(batch_loss / len(test_dataloader))
                 network_learned = batch_loss < valid_loss_min
