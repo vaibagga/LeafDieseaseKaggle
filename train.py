@@ -4,12 +4,14 @@ from torch import nn
 import torch
 import numpy as np
 from torch import optim
+from torchsummary import summary
 
 class Model():
 
     def __init__(self):
-        self.model = resnet18(pretrained=True)
-        self.device = torch.cuda.device()
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model = resnet18(pretrained=True).to(self.device)
+
 
     def accuracy(self, out, labels):
         _, pred = torch.max(out, dim=1)
@@ -17,6 +19,8 @@ class Model():
 
     def train(self, train_dataloader, test_dataloader):
         n_epochs = 5
+        NUM_CLASS = 5
+        use_cuda = torch.cuda.is_available()
         print_every = 10
         valid_loss_min = np.Inf
         val_loss = []
@@ -27,18 +31,23 @@ class Model():
         optimizer = optim.SGD(self.model.parameters(), lr=0.0001, momentum=0.9)
         total_step = len(train_dataloader)
         num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, 128)
-        self.model.fc = self.model.fc.cuda() if use_cuda else net.fc
+        self.model.fc = nn.Linear(num_ftrs, NUM_CLASS).to(self.device)
+        #self.model.fc = self.model.fc.cuda() if use_cuda else self.model.fc
+        summary(self.model, (3, 224, 224))
         for epoch in range(1, n_epochs + 1):
             running_loss = 0.0
             correct = 0
             total = 0
             print(f'Epoch {epoch}\n')
-            for batch_idx, (data_, target_) in enumerate(train_dataloader):
-                data_, target_ = data_.to(self.device), target_.to(self.device)
+            for batch_idx, (_,_) in enumerate(train_dataloader):
+                data_ = np.transpose(train_dataloader[batch_idx]['image'], (2,0,1))
+                data_ = torch.from_numpy(data_)
+                data_ = data_.unsqueeze(0)
+                target_ = torch.from_numpy(np.array([train_dataloader[batch_idx]['label']]))
+                data_, target_ = data_.to(self.device, dtype=torch.float), target_.to(self.device, dtype=torch.long)
                 optimizer.zero_grad()
 
-                outputs = net(data_)
+                outputs = self.model(data_)
                 loss = criterion(outputs, target_)
                 loss.backward()
                 optimizer.step()
@@ -73,9 +82,8 @@ class Model():
 
                 if network_learned:
                     valid_loss_min = batch_loss
-                    torch.save(net.state_dict(), 'resnet.pt')
+                    torch.save(self.model.state_dict(), 'resnet.pt')
                     print('Improvement-Detected, save-model')
-
 
     def test(self):
         pass
@@ -83,10 +91,12 @@ class Model():
 
 def main():
     model = Model()
-    CSV_PATH = 'Data/train.csv',
+    CSV_PATH = 'Data/train.csv'
     ROOT_PATH = 'Data/train_images'
-    train_data = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
-    model.train(train_data)
+    dataset = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(0.7*len(dataset)),len(dataset)-int(0.7*len(dataset))])
+
+    model.train(train_dataset, val_dataset)
 
 if __name__ == "__main__":
     main()
