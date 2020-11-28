@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from torch import optim
 from torchsummary import summary
+from torch.utils.data import Dataset, DataLoader
 
 class Model():
 
@@ -39,11 +40,12 @@ class Model():
             correct = 0
             total = 0
             print(f'Epoch {epoch}\n')
-            for batch_idx, (_,_) in enumerate(train_dataloader):
-                data_ = np.transpose(train_dataloader[batch_idx]['image'], (2,0,1))
+            batch_idx = 0
+            for data_,target_ in train_dataloader:
+                batch_idx += 1
+                data_ = np.transpose(data_, (0,3,1,2))
                 data_ = torch.from_numpy(data_)
-                data_ = data_.unsqueeze(0)
-                target_ = torch.from_numpy(np.array([train_dataloader[batch_idx]['label']]))
+                target_ = torch.from_numpy(np.array([target_]))
                 data_, target_ = data_.to(self.device, dtype=torch.float), target_.to(self.device, dtype=torch.long)
                 optimizer.zero_grad()
 
@@ -94,8 +96,10 @@ def main():
     CSV_PATH = 'Data/train.csv'
     ROOT_PATH = 'Data/train_images'
     dataset = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(0.7*len(dataset)),len(dataset)-int(0.7*len(dataset))])
-
+    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
+    train_dataset, val_dataset = torch.utils.data.random_split(dataloader, [int(0.7 * len(dataloader)),
+                                                                            len(dataloader) - int(
+                                                                                0.7 * len(dataloader))])
     model.train(train_dataset, val_dataset)
 
 if __name__ == "__main__":

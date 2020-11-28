@@ -49,14 +49,14 @@ class LeafDiseaseDataset(Dataset):
         if self.transform:
             transformed = self.transform(image=image)
             image = transformed["image"]
-            image = np.divide(image, 255.0).astype('float')
-        sample = {"image": image, "label": label}
+        image = np.divide(image, 255.0).astype('float')
+        sample = (image, label)
 
         return sample
 
     def showImage(self, idx):
-        image = self[idx]['image']
-        plt.imshow(image*255)
+        image = self[idx][0]
+        plt.imshow(image)
         plt.show()
 
 
@@ -64,8 +64,9 @@ def main():
     CSV_PATH = 'Data/train.csv'
     ROOT_PATH = 'Data/train_images'
     dataset = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
-    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [int(0.7 * len(dataset)),
-                                                                         len(dataset) - int(0.7 * len(dataset))])
+    dataloader = DataLoader(dataset, batch_size=64,shuffle=True, num_workers=0)
+    train_dataset, val_dataset = torch.utils.data.random_split(dataloader, [int(0.7 * len(dataloader)),
+                                                                         len(dataloader) - int(0.7 * len(dataloader))])
 
 
 if __name__ == "__main__":
