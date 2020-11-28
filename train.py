@@ -1,4 +1,4 @@
-from DataLoader import LeafDiseaseDataset
+from DataLoader import LeafDiseaseDataset, train_val_dataset
 from torchvision.models import resnet18
 from torch import nn
 import torch
@@ -35,17 +35,17 @@ class Model():
         self.model.fc = nn.Linear(num_ftrs, NUM_CLASS).to(self.device)
         #self.model.fc = self.model.fc.cuda() if use_cuda else self.model.fc
         summary(self.model, (3, 224, 224))
+
         for epoch in range(1, n_epochs + 1):
             running_loss = 0.0
             correct = 0
             total = 0
             print(f'Epoch {epoch}\n')
-            batch_idx = 0
-            for data_,target_ in train_dataloader:
-                batch_idx += 1
-                data_ = np.transpose(data_, (0,3,1,2))
-                data_ = torch.from_numpy(data_)
-                target_ = torch.from_numpy(np.array([target_]))
+            for batch_idx, (data_,target_) in enumerate(train_dataloader):
+                #print(data_.shape, data_)
+                #data_ = np.transpose(data_, (0,3,1,2))
+                #data_ = torch.from_numpy(data_)
+                #target_ = torch.from_numpy(np.array([target_]))
                 data_, target_ = data_.to(self.device, dtype=torch.float), target_.to(self.device, dtype=torch.long)
                 optimizer.zero_grad()
 
@@ -96,11 +96,10 @@ def main():
     CSV_PATH = 'Data/train.csv'
     ROOT_PATH = 'Data/train_images'
     dataset = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=0)
-    train_dataset, val_dataset = torch.utils.data.random_split(dataloader, [int(0.7 * len(dataloader)),
-                                                                            len(dataloader) - int(
-                                                                                0.7 * len(dataloader))])
-    model.train(train_dataset, val_dataset)
+    train_dataset, test_dataset = train_val_dataset(dataset)
+    train_dataloader = DataLoader(train_dataset, batch_size=64)
+    test_dataloader = DataLoader(test_dataset, batch_size=64)
+    model.train(train_dataloader, test_dataloader)
 
 if __name__ == "__main__":
     main()

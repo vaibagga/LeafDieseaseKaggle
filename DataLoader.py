@@ -6,9 +6,10 @@ from skimage import io, transform
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import transforms, utils
 import albumentations as A
+from sklearn.model_selection import train_test_split
 
 # Ignore warnings
 import warnings
@@ -50,6 +51,7 @@ class LeafDiseaseDataset(Dataset):
             transformed = self.transform(image=image)
             image = transformed["image"]
         image = np.divide(image, 255.0).astype('float')
+        image = np.transpose(image, (2,0,1))
         sample = (image, label)
 
         return sample
@@ -60,14 +62,22 @@ class LeafDiseaseDataset(Dataset):
         plt.show()
 
 
+def train_val_dataset(dataset, val_split=0.3):
+    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split)
+    train_ds = Subset(dataset, train_idx)
+    val_ds = Subset(dataset, val_idx)
+    return train_ds, val_ds
+
+
 def main():
     CSV_PATH = 'Data/train.csv'
     ROOT_PATH = 'Data/train_images'
     dataset = LeafDiseaseDataset(csv_file=CSV_PATH, root_dir=ROOT_PATH)
-    dataloader = DataLoader(dataset, batch_size=64,shuffle=True, num_workers=0)
-    train_dataset, val_dataset = torch.utils.data.random_split(dataloader, [int(0.7 * len(dataloader)),
-                                                                         len(dataloader) - int(0.7 * len(dataloader))])
-
+    train_dataset, test_dataset = train_val_dataset(dataset)
+    train_dataloader = DataLoader(train_dataset, batch_size=64)
+    test_dataloader = DataLoader(test_dataset, batch_size=64)
+    for _ in train_dataloader:
+        print(_)
 
 if __name__ == "__main__":
     main()
